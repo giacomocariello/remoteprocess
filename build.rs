@@ -14,6 +14,9 @@ fn main() {
             // statically link libunwind if compiling for musl, dynamically link otherwise
             if env::var("CARGO_FEATURE_UNWIND").is_ok() {
                 println!("cargo:rustc-cfg=use_libunwind");
+                let libunwind_libdir = env::var("LIBUNWIND_LIBDIR").unwrap_or(format!("/usr/local/musl/{}/lib", target));
+                let libz_libdir = env::var("LIBZ_LIBDIR").unwrap_or(format!("/usr/local/musl/{}/lib", target));
+                let liblzma_libdir = env::var("LIBLZMA_LIBDIR").unwrap_or(format!("/usr/local/musl/{}/lib", target));
                 if env::var("CARGO_CFG_TARGET_ENV").unwrap() == "musl"
                     && env::var("CARGO_CFG_TARGET_VENDOR").unwrap() != "alpine"
                 {
@@ -21,23 +24,28 @@ fn main() {
 
                     let out_dir = env::var("OUT_DIR").unwrap();
                     std::fs::copy(
-                        format!("/usr/local/musl/{}/lib/libunwind.a", target),
+                        format!("{}/libunwind.a", libunwind_libdir),
                         format!("{}/libunwind-remoteprocess.a", out_dir),
                     )
                     .unwrap();
                     std::fs::copy(
-                        format!("/usr/local/musl/{}/lib/libunwind-ptrace.a", target),
+                        format!("{}/libunwind-ptrace.a", libunwind_libdir),
                         format!("{}/libunwind-ptrace.a", out_dir),
                     )
                     .unwrap();
                     std::fs::copy(
-                        format!("/usr/local/musl/{}/lib/libunwind-{}.a", target, target_arch),
+                        format!("{}/libunwind-{}.a", libunwind_libdir, target_arch),
                         format!("{}/libunwind-{}.a", out_dir, target_arch),
                     )
                     .unwrap();
                     std::fs::copy(
-                        format!("/usr/local/musl/{}/lib/libz.a", target),
+                        format!("{}/libz.a", libz_libdir),
                         format!("{}/libz.a", out_dir),
+                    )
+                    .unwrap();
+                    std::fs::copy(
+                        format!("{}/liblzma.a", liblzma_libdir),
+                        format!("{}/liblzma.a", out_dir),
                     )
                     .unwrap();
                     println!("cargo:rustc-link-search=native={}", out_dir);
@@ -45,6 +53,7 @@ fn main() {
                     println!("cargo:rustc-link-lib=static=unwind-ptrace");
                     println!("cargo:rustc-link-lib=static=unwind-{}", target_arch);
                     println!("cargo:rustc-link-lib=static=z");
+                    println!("cargo:rustc-link-lib=static=lzma");
                 } else {
                     println!("cargo:rustc-link-lib=dylib=unwind");
                     println!("cargo:rustc-link-lib=dylib=unwind-ptrace");
